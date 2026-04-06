@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CreativeAI Agent</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Inter', sans-serif; background: #0a0a0f; color: #e0e0e0; height: 100vh; overflow: hidden; }
+.playfair { font-family: 'Playfair Display', serif; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #1a1a2e; }
+::-webkit-scrollbar-thumb { background: #6c5ce7; border-radius: 3px; }
+
+/* Layout */
+.app-container { display: flex; height: 100vh; }
+.sidebar { width: 320px; background: #11111b; border-right: 1px solid #1e1e3a; display: flex; flex-direction: column; transition: transform 0.3s; }
+.main-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.chat-area { flex: 1; overflow-y: auto; padding: 20px; }
+.input-area { padding: 16px 20px; background: #11111b; border-top: 1px solid #1e1e3a; }
+
+/* Chat */
+.msg { max-width: 85%; margin-bottom: 16px; animation: fadeUp 0.3s ease; }
+.msg-agent { align-self: flex-start; }
+.msg-user { align-self: flex-end; }
+.msg-bubble { padding: 12px 16px; border-radius: 16px; line-height: 1.6; font-size: 14px; }
+.msg-agent .msg-bubble { background: #1a1a2e; border-bottom-left-radius: 4px; }
+.msg-user .msg-bubble { background: linear-gradient(135deg, #6c5ce7, #a855f7); color: white; border-bottom-right-radius: 4px; }
+.msg-image { margin-top: 10px; border-radius: 12px; overflow: hidden; position: relative; }
+.msg-image img { width: 100%; max-width: 512px; border-radius: 12px; cursor: pointer; }
+
+/* Typing indicator */
+.typing-dots { display: flex; gap: 4px; padding: 12px 16px; }
+.typing-dots span { width: 8px; height: 8px; background: #6c5ce7; border-radius: 50%; animation: bounce 1.4s infinite; }
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+/* Templates */
+.template-card { background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 12px; padding: 12px; cursor: pointer; transition: all 0.2s; }
+.template-card:hover { border-color: #6c5ce7; transform: translateY(-2px); box-shadow: 0 4px 20px rgba(108,92,231,0.2); }
+
+/* Controls */
+.control-btn { background: #1a1a2e; border: 1px solid #2a2a4a; color: #e0e0e0; padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s; font-size: 13px; }
+.control-btn:hover { border-color: #6c5ce7; background: #2a2a4a; }
+.control-btn.active { border-color: #6c5ce7; background: #6c5ce720; color: #a78bfa; }
+
+/* Slider */
+input[type="range"] { -webkit-appearance: none; width: 100%; height: 6px; background: #2a2a4a; border-radius: 3px; outline: none; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: #6c5ce7; border-radius: 50%; cursor: pointer; }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.active { display: flex; }
+.modal-content { background: #16162a; border: 1px solid #2a2a4a; border-radius: 16px; max-width: 700px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 30px; }
+
+/* Image Preview */
+.preview-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 200; display: none; align-items: center; justify-content: center; cursor: zoom-out; }
+.preview-overlay.active { display: flex; }
+.preview-overlay img { max-width: 95vw; max-height: 95vh; border-radius: 8px; }
+
+/* Gallery grid */
+.gallery-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.gallery-item { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 1; cursor: pointer; }
+.gallery-item img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+.gallery-item:hover img { transform: scale(1.05); }
+
+/* Quick Actions */
+.quick-action { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 20px; font-size: 12px; cursor: pointer; transition: all 0.2s; color: #a0a0c0; }
+.quick-action:hover { border-color: #6c5ce7; color: #a78bfa; }
+
+/* File upload */
+.upload-zone { border: 2px dashed #2a2a4a; border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.upload-zone:hover, .upload-zone.drag-over { border-color: #6c5ce7; background: #6c5ce710; }
+.upload-preview { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.upload-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 2px solid #2a2a4a; }
+
+/* Sidebar tabs */
+.sidebar-tab { padding: 10px 16px; cursor: pointer; font-size: 13px; font-weight: 500; color: #666; border-bottom: 2px solid transparent; transition: all 0.2s; }
+.sidebar-tab.active { color: #a78bfa; border-bottom-color: #6c5ce7; }
+
+/* Mobile */
+.mobile-header { display: none; }
+.sidebar-overlay { display: none; }
+
+@media (max-width: 768px) {
+  .sidebar { position: fixed; left: 0; top: 0; bottom: 0; z-index: 50; transform: translateX(-100%); width: 300px; }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 49; }
+  .sidebar-overlay.active { display: block; }
+  .mobile-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #11111b; border-bottom: 1px solid #1e1e3a; }
+  .msg { max-width: 95%; }
+  .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-8px); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.code-block { background: #0d0d1a; border: 1px solid #2a2a4a; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 12px; overflow-x: auto; margin: 8px 0; color: #a78bfa; }
+.step-number { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: #6c5ce7; border-radius: 50%; font-weight: 700; font-size: 13px; margin-right: 8px; flex-shrink: 0; }
+.deploy-option { background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.deploy-option h4 { color: #a78bfa; margin-bottom: 6px; }
+.badge-free { background: #10b981; color: white; font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.badge-easy { background: #f59e0b; color: black; font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar Overlay (mobile) -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+<!-- Image Preview -->
+<div class="preview-overlay" id="previewOverlay" onclick="closePreview()">
+  <img id="previewImage" src="" alt="Preview">
+</div>
+
+<!-- Deploy/Share Modal -->
+<div class="modal-overlay" id="deployModal">
+  <div class="modal-content">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-xl font-bold text-white">🚀 Deploy & Access from Anywhere</h2>
+      <button onclick="closeModal('deployModal')" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+    </div>
+
+    <p class="text-gray-400 text-sm mb-6">Choose any method below to access your CreativeAI Agent from any phone, tablet, or PC:</p>
+
+    <!-- Option 1 -->
+    <div class="deploy-option">
+      <div class="flex items-center gap-2 mb-2">
+        <h4 class="font-semibold">1. GitHub Pages</h4>
+        <span class="badge-free">FREE</span>
+        <span class="badge-easy">EASIEST</span>
+      </div>
+      <p class="text-gray-400 text-xs mb-3">Host this file on GitHub Pages — free, fast, and always online.</p>
+      <div class="flex items-start gap-2 mb-2"><span class="step-number">1</span><span class="text-sm">Go to <a href="https://github.com/new" target="_blank" class="text-purple-400 underline">github.com/new</a> → Create a repo (e.g. <code>creative-ai</code>)</span></div>
+      <div class="flex items-start gap-2 mb-2"><span class="step-number">2</span><span class="text-sm">Upload this <code>index.html</code> file to the repo</span></div>
+      <div class="flex items-start gap-2 mb-2"><span class="step-number">3</span><span class="text-sm">Go to <strong>Settings → Pages → Source: main branch</strong> → Save</span></div>
+      <div class="flex items-start gap-2"><span class="step-number">4</span><span class="text-sm">Access at: <code class="text-purple-400">https://yourusername.github.io/creative-ai/</code></span></div>
+    </div>
+
+    <!-- Option 2 -->
+    <div class="deploy-option">
+      <div class="flex items-center gap-2 mb-2">
+        <h4 class="font-semibold">2. Netlify Drop</h4>
+        <span class="badge-free">FREE</span>
+        <span class="badge-easy">30 SECONDS</span>
+      </div>
+      <p class="text-gray-400 text-xs mb-3">Drag & drop deployment — the fastest way to go live.</p>
+      <div class="flex items-start gap-2 mb-2"><span class="step-number">1</span><span class="text-sm">Go to <a href="https://app.netlify.com/drop" target="_blank" class="text-purple-400 underline">app.netlify.com/drop</a></span></div>
+      <div class="flex items-start gap-2 mb-2"><span class="step-number">2</span><span class="text-sm">Drag your folder containing <code>index.html</code> onto the page</span></div>
+      <div class="flex items-start gap-2"><span class="step-number">3</span><span class="text-sm">Done! You get a URL like <code class="text-purple-400">https://random-name.netlify.app</code></span></div>
+    </div>
+
+    <!-- Option 3 -->
+    <div class="deploy-option">
+      <div class="flex items-center gap-2 mb-2">
+        <h4 class="font-semibold">3. Vercel</h4>
+        <span class="badge-free">FREE</span>
+      </div>
+      <p class="text-gray-400 text-xs mb-3">Professional hosting with custom domains support.</p>
+      <div class="flex items-start gap-2 mb-2"><span class="step-number">1</span><span class="text-sm">Go to <a href="https://vercel.com" target="_blank" class="text-purple-400 underline">vercel.com</a> → Sign up with GitHub</span></div>
+      <div class="flex items-start gap-2 mb-2"><span class="step-number">2</span><span class="text-sm">Import your GitHub repo or drag & drop files</span></div>
+      <div class="flex items-start gap-2"><span class="step-number">3</span><span class="text-sm">Auto-deployed at <code class="text-purple-400">https://your-project.vercel.app</code></span></div>
+    </div>
+
+    <!-- Option 4 -->
+    <div class="deploy-option">
+      <div class="flex items-center gap-2 mb-2">
+        <h4 class="font-semibold">4. Local Network (Same WiFi)</h4>
+        <span class="badge-easy">NO INTERNET NEEDED</span>
+      </div>
+      <p class="text-gray-400 text-xs mb-3">Access from your phone on the same WiFi network.</p>
+      <div class="code-block">
+        # Install a simple server (one-time)<br>
+        npm install -g serve<br><br>
+        # Run in the folder with index.html<br>
+        serve -l 3000<br><br>
+        # Or with Python (pre-installed on Mac/Linux)<br>
+        python -m http.server 3000<br><br>
+        # Then open on your phone/other PC:<br>
+        # http://YOUR_PC_IP:3000<br>
+        # (Find IP: ipconfig on Windows / ifconfig on Mac)
+      </div>
+    </div>
+
+    <!-- Option 5 -->
+    <div class="deploy-option">
+      <div class="flex items-center gap-2 mb-2">
+        <h4 class="font-semibold">5. Cloudflare Tunnel (Advanced)</h4>
+        <span class="badge-free">FREE</span>
+      </div>
+      <p class="text-gray-400 text-xs mb-3">Expose your local machine to the internet securely.</p>
+      <div class="code-block">
+        # Install cloudflared, then run:<br>
+        cloudflared tunnel --url http://localhost:3000
+      </div>
+    </div>
+
+    <div class="mt-4 p-4 bg-purple-900/20 border border-purple-500/30 rounded-xl text-sm">
+      <strong class="text-purple-300">💡 Recommendation:</strong>
+      <span class="text-gray-300">For the easiest setup, use <strong>Netlify Drop</strong> — just drag and drop. For long-term use, <strong>GitHub Pages</strong> is the best free option.</span>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-content">
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-xl font-bold text-white">⚙️ Agent Settings</h2>
+      <button onclick="closeModal('settingsModal')" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+    </div>
+
+    <div class="space-y-6">
+      <div>
+        <label class="text-sm font-medium text-gray-300 mb-2 block">Agent Personality</label>
+        <select id="personality" class="w-full bg-[#1a1a2e] border border-[#2a2a4a] rounded-lg px-4 py-3 text-white text-sm focus:border-purple-500 outline-none">
+          <option value="helpful">🤝 Helpful & Friendly</option>
+          <option value="creative">🎨 Extra Creative</option>
+          <option value="professional">💼 Professional</option>
+          <option value="minimal">⚡ Minimal & Fast</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm font-medium text-gray-300 mb-2 block">Default Image Size</label>
+        <select id="defaultSize" class="w-full bg-[#1a1a2e] border border-[#2a2a4a] rounded-lg px-4 py-3 text-white text-sm focus:border-purple-500 outline-none">
+          <option value="1024x1024">1024 × 1024 (Square)</option>
+          <option value="1280x720">1280 × 720 (Landscape)</option>
+          <option value="720x1280">720 × 1280 (Portrait)</option>
+          <option value="1920x1080">1920 × 1080 (Full HD)</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-sm font-medium text-gray-300 mb-2 block">Auto-Enhance Prompts</label>
+        <div class="flex items-center gap-3">
+          <input type="checkbox" id="autoEnhance" checked class="w-5 h-5 accent-purple-500">
+          <span class="text-sm text-gray-400">Agent automatically improves your prompts for better results</span>
+        </div>
+      </div>
+      <div>
+        <label class="text-sm font-medium text-gray-300 mb-2 block">Save History</label>
+        <div class="flex items-center gap-3">
+          <input type="checkbox" id="saveHistory" checked class="w-5 h-5 accent-purple-500">
+          <span class="text-sm text-gray-400">Remember chat & gallery across sessions</span>
+        </div>
+      </div>
+      <button onclick="closeModal('settingsModal')" class="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg text-white font-semibold hover:opacity-90 transition">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app-container">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="p-4 border-b border-[#1e1e3a]">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center text-lg">🎨</div>
+          <div>
+            <h1 class="font-bold text-white text-sm">CreativeAI</h1>
+            <p class="text-[11px] text-green-400 flex items-center gap-1"><span class="w-2 h-2 bg-green-400 rounded-full inline-block"></span> Agent Online</p>
+          </div>
+        </div>
+        <button class="md:hidden text-gray-400 text-xl" onclick="toggleSidebar()">✕</button>
+      </div>
+    </div>
+
+    <!-- Sidebar Tabs -->
+    <div class="flex border-b border-[#1e1e3a]">
+      <div class="sidebar-tab active flex-1 text-center" onclick="switchSidebarTab('templates')">Templates</div>
+      <div class="sidebar-tab flex-1 text-center" onclick="switchSidebarTab('controls')">Controls</div>
+      <div class="sidebar-tab flex-1 text-center" onclick="switchSidebarTab('gallery')">Gallery</div>
+    </div>
+
+    <!-- Templates Tab -->
+    <div class="sidebar-panel flex-1 overflow-y-auto p-4 space-y-3" id="panel-templates">
+      <p class="text-xs text-gray-500 mb-2">Click a template to use it:</p>
+
+      <div class="template-card" onclick="useTemplate('Portrait of a person with dramatic lighting, shallow depth of field, shot on 85mm lens, studio quality')">
+        <div class="flex items-center gap-2 mb-1"><span>📸</span><span class="text-sm font-medium text-white">Portrait Photography</span></div>
+        <p class="text-xs text-gray-500">Dramatic lighting, shallow DOF</p>
+      </div>
+
+      <div class="template-card" onclick="useTemplate('Cinematic wide-angle scene with volumetric fog, golden hour lighting, film grain, anamorphic lens flare, movie still quality')">
+        <div class="flex items-center gap-2 mb-1"><span>🎬</span><span class="text-sm font-medium text-white">Cinematic Scene</span></div>
+        <p class="text-xs text-gray-500">Movie-quality with volumetric fog</p>
+      </div>
+
+      <div class="template-card" onclick="useTemplate('Breathtaking nature landscape, mountains, serene lake, golden hour, ultra wide-angle, National Geographic quality')">
+        <div class="flex items-center gap-2 mb-1"><span>🏔️</span><span class="text-sm font-medium text-white">Nature Landscape</span></div>
+        <p class="text-xs text-gray-500">NatGeo quality landscapes</p>
+      </div>
+
+      <div class="template-card" onclick="useTemplate('Professional product photography, clean white background, soft studio lighting, commercial quality, high detail')">
+        <div class="flex items-center gap-2 mb-1"><span>🛍️</span><span class="text-sm font-medium text-white">Product Photography</span></div>
+        <p class="text-xs text-gray-500">Clean commercial product shots</p>
+      </div>
+
+      <div class="template-card" onclick="useTemplate('Modern architectural photography, geometric lines, dramatic perspective, golden ratio composition, minimalist')">
+        <div class="flex items-center gap-2 mb-1"><span>🏛️</span><span class="text-sm font-medium text-white">Architecture</span></div>
+        <p class="text-xs text-gray-500">Geometric & minimalist</p>
+      </div>
+
+      <div class="template-card" onclick="useTemplate('Epic fantasy art, magical atmosphere, ethereal glow, detailed digital painting, concept art quality')">
+        <div class="flex items-center gap-2 mb-1"><span>🧙</span><span class="text-sm font-medium text-white">Fantasy Art</span></div>
+        <p class="text-xs text-gray-500">Magical digital paintings</p>
+      </div>
+
+      <div class="template-card" onclick="useTemplate('Street photography, candid moment, urban environment, natural lighting, documentary style, Leica quality')">
+        <div class="flex items-center gap-2 mb-1"><span>🌆</span><span class="text-sm font-medium text-white">Street Photography</span></div>
+        <p class="text-xs text-gray-500">Candid urban moments</p>
+      </div>
+
+      <div class="template-card" onclick="useTemplate('Professional food photography, appetizing styling, soft natural light, shallow depth of field, overhead angle')">
+        <div class="flex items-center gap-2 mb-1"><span>🍕</span><span class="text-sm font-medium text-white">Food Photography</span></div>
+        <p class="text-xs text-gray-500">Appetizing food styling</p>
+      </div>
+
+      <div class="template-card" onclick="useTemplate('Anime style illustration, vibrant colors, detailed character design, Studio Ghibli inspired, beautiful scenery')">
+        <div class="flex items-center gap-2 mb-1"><span>🎌</span><span class="text-sm font-medium text-white">Anime Style</span></div>
+        <p class="text-xs text-gray-500">Ghibli-inspired anime art</p>
+      </div>
+
+      <div class="template-card" onclick="useTemplate('Cyberpunk cityscape, neon lights, rain-soaked streets, holographic signs, blade runner style, futuristic')">
+        <div class="flex items-center gap-2 mb-1"><span>🌃</span><span class="text-sm font-medium text-white">Cyberpunk</span></div>
+        <p class="text-xs text-gray-500">Neon-soaked futuristic cities</p>
+      </div>
+
+      <div class="template-card" onclick="useTemplate('Watercolor painting, soft washes, delicate details, botanical illustration, elegant and artistic')">
+        <div class="flex items-center gap-2 mb-1"><span>🎨</span><span class="text-sm font-medium text-white">Watercolor Art</span></div>
+        <p class="text-xs text-gray-500">Delicate watercolor paintings</p>
+      </div>
+
+      <div class="template-card" onclick="useTemplate('Isometric 3D render, cute miniature world, soft pastel colors, detailed tiny objects, diorama style')">
+        <div class="flex items-center gap-2 mb-1"><span>🧊</span><span class="text-sm font-medium text-white">3D Isometric</span></div>
+        <p class="text-xs text-gray-500">Cute miniature dioramas</p>
+      </div>
+    </div>
+
+    <!-- Controls Tab -->
+    <div class="sidebar-panel flex-1 overflow-y-auto p-4 space-y-5 hidden" id="panel-controls">
+      <div>
+        <label class="text-xs font-medium text-gray-400 mb-2 block">MODE</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button class="control-btn active text-xs" onclick="setMode('image', this)" data-mode="image">🖼️ Image</button>
+          <button class="control-btn text-xs" onclick="setMode('video', this)" data-mode="video">🎬 Video</button>
+          <button class="control-btn text-xs" onclick="setMode('edit', this)" data-mode="edit">✏️ Edit</button>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-medium text-gray-400 mb-2 block">STYLE PRESET</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button class="control-btn active text-xs" onclick="setStyle('photorealistic', this)">📷 Realistic</button>
+          <button class="control-btn text-xs" onclick="setStyle('artistic', this)">🎨 Artistic</button>
+          <button class="control-btn text-xs" onclick="setStyle('anime', this)">🎌 Anime</button>
+          <button class="control-btn text-xs" onclick="setStyle('3d-render', this)">🧊 3D Render</button>
+          <button class="control-btn text-xs" onclick="setStyle('cinematic', this)">🎬 Cinematic</button>
+          <button class="control-btn text-xs" onclick="setStyle('abstract', this)">🌀 Abstract</button>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-medium text-gray-400 mb-2 block">ASPECT RATIO</label>
+        <div class="grid grid-cols-4 gap-2">
+          <button class="control-btn active text-xs" onclick="setRatio('1:1', this)">1:1</button>
+          <button class="control-btn text-xs" onclick="setRatio('16:9', this)">16:9</button>
+          <button class="control-btn text-xs" onclick="setRatio('9:16', this)">9:16</button>
+          <button class="control-btn text-xs" onclick="setRatio('4:3', this)">4:3</button>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-medium text-gray-400 mb-2 block">QUALITY</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button class="control-btn text-xs" onclick="setQuality('standard', this)">Standard</button>
+          <button class="control-btn active text-xs" onclick="setQuality('high', this)">High</button>
+          <button class="control-btn text-xs" onclick="setQuality('ultra', this)">Ultra</button>
+        </div>
+      </div>
+
+      <div>
+        <label class="text-xs font-medium text-gray-400 mb-2 block">CREATIVITY: <span id="creativityVal" class="text-purple-400">70%</span></label>
+        <input type="range" min="0" max="100" value="70" id="creativitySlider" oninput="document.getElementById('creativityVal').textContent=this.value+'%'">
+      </div>
+
+      <div>
+        <label class="text-xs font-medium text-gray-400 mb-2 block">NEGATIVE PROMPT</label>
+        <textarea id="negativePrompt" rows="2" placeholder="Things to avoid..." class="w-full bg-[#0d0d1a] border border-[#2a2a4a] rounded-lg px-3 py-2 text-sm text-white resize-none focus:border-purple-500 outline-none"></textarea>
+      </div>
+
+      <div>
+        <label class="text-xs font-medium text-gray-400 mb-2 block">UPLOAD REFERENCE</label>
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+          <input type="file" id="fileInput" accept="image/*,video/*" multiple hidden onchange="handleFileUpload(event)">
+          <p class="text-gray-500 text-sm">📁 Drop files or click to upload</p>
+          <p class="text-gray-600 text-xs mt-1">Images or videos for reference</p>
+        </div>
+        <div class="upload-preview" id="uploadPreview"></div>
+      </div>
+    </div>
+
+    <!-- Gallery Tab -->
+    <div class="sidebar-panel flex-1 overflow-y-auto p-4 hidden" id="panel-gallery">
+      <div class="flex justify-between items-center mb-3">
+        <p class="text-xs text-gray-500"><span id="galleryCount">0</span> creations</p>
+        <button class="text-xs text-red-400 hover:text-red-300" onclick="clearGallery()">Clear All</button>
+      </div>
+      <div class="gallery-grid" id="galleryGrid"></div>
+      <p class="text-center text-gray-600 text-xs mt-4" id="galleryEmpty">Your creations will appear here</p>
+    </div>
+
+    <!-- Bottom buttons -->
+    <div class="p-3 border-t border-[#1e1e3a] space-y-2">
+      <button onclick="openModal('deployModal')" class="w-full py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg text-white text-sm font-semibold hover:opacity-90 transition flex items-center justify-center gap-2">
+        🚀 Deploy & Share
+      </button>
+      <div class="flex gap-2">
+        <button onclick="openModal('settingsModal')" class="flex-1 py-2 bg-[#1a1a2e] border border-[#2a2a4a] rounded-lg text-gray-400 text-xs hover:border-purple-500 transition">⚙️ Settings</button>
+        <button onclick="clearChat()" class="flex-1 py-2 bg-[#1a1a2e] border border-[#2a2a4a] rounded-lg text-gray-400 text-xs hover:border-purple-500 transition">🗑️ Clear Chat</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-area">
+
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+      <button onclick="toggleSidebar()" class="text-xl text-white">☰</button>
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center text-sm">🎨</div>
+        <span class="font-bold text-white text-sm">CreativeAI</span>
+      </div>
+      <button onclick="openModal('deployModal')" class="text-xl">🚀</button>
+    </div>
+
+    <!-- Chat Messages -->
+    <div class="chat-area flex flex-col" id="chatArea">
+      <!-- Welcome message will be injected -->
+    </div>
+
+    <!-- Quick Actions Bar -->
+    <div class="px-4 py-2 flex gap-2 flex-wrap" id="quickActions">
+      <button class="quick-action" onclick="sendQuickAction('enhance')">🪄 Enhance last</button>
+      <button class="quick-action" onclick="sendQuickAction('variations')">📑 Variations</button>
+      <button class="quick-action" onclick="sendQuickAction('upscale')">⬆️ Upscale</button>
+      <button class="quick-action" onclick="sendQuickAction('style')">🎨 Change style</button>
+      <button class="quick-action" onclick="sendQuickAction('help')">❓ Help</button>
+    </div>
+
+    <!-- Input Area -->
+    <div class="input-area">
+      <div class="flex gap-3 items-end">
+        <button onclick="document.getElementById('fileInput').click()" class="w-10 h-10 rounded-xl bg-[#1a1a2e] border border-[#2a2a4a] flex items-center justify-center text-gray-400 hover:border-purple-500 hover:text-purple-400 transition flex-shrink-0">📎</button>
+        <div class="flex-1 relative">
+          <textarea id="userInput" rows="1" placeholder="Describe what you want to create..." class="w-full bg-[#1a1a2e] border border-[#2a2a4a] rounded-xl px-4 py-3 pr-12 text-sm text-white resize-none focus:border-purple-500 outline-none max-h-32" onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
+        </div>
+        <button onclick="sendMessage()" id="sendBtn" class="w-10 h-10 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white hover:opacity-90 transition flex-shrink-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ============= STATE =============
+const state = {
+  mode: 'image',
+  style: 'photorealistic',
+  ratio: '1:1',
+  quality: 'high',
+  creativity: 70,
+  messages: [],
+  gallery: [],
+  lastPrompt: '',
+  lastImageUrl: '',
+  uploadedFiles: [],
+  isGenerating: false
+};
+
+const ratioMap = {
+  '1:1': { w: 1024, h: 1024 },
+  '16:9': { w: 1280, h: 720 },
+  '9:16': { w: 720, h: 1280 },
+  '4:3': { w: 1024, h: 768 }
+};
+
+const styleEnhancers = {
+  'photorealistic': 'photorealistic, ultra detailed, 8k, shot on DSLR, natural lighting',
+  'artistic': 'artistic, oil painting style, textured brushstrokes, museum quality',
+  'anime': 'anime style, vibrant colors, detailed illustration, Studio Ghibli quality',
+  '3d-render': '3D render, octane render, volumetric lighting, subsurface scattering, CGI quality',
+  'cinematic': 'cinematic, anamorphic, film grain, volumetric fog, movie still, color graded',
+  'abstract': 'abstract art, geometric shapes, bold colors, modern art, creative composition'
+};
+
+// ============= INIT =============
+window.addEventListener('DOMContentLoaded', () => {
+  loadState();
+  showWelcome();
+  setupDragDrop();
+});
+
+function showWelcome() {
+  const chatArea = document.getElementById('chatArea');
+  if (state.messages.length === 0) {
+    addAgentMessage(`👋 **Welcome to CreativeAI Agent!**
+
+I'm your AI creative assistant. Here's what I can do:
+
+🖼️ **Generate Images** — Describe any scene and I'll create it
+🎬 **Generate Videos** — Create short video clips from text
+✏️ **Edit & Modify** — Tell me to change colors, style, or details
+📸 **Use References** — Upload images for style transfer
+
+**Try saying:**
+• "Create a sunset over a mountain lake"
+• "Make an anime character with blue hair"
+• "Cyberpunk city at night, raining"
+
+Or pick a **template** from the sidebar to get started! →`);
+  } else {
+    state.messages.forEach(msg => {
+      renderMessage(msg.role, msg.content, msg.image, false);
+    });
+  }
+}
+
+// ============= CHAT =============
+function sendMessage() {
+  const input = document.getElementById('userInput');
+  const text = input.value.trim();
+  if (!text || state.isGenerating) return;
+
+  input.value = '';
+  autoResize(input);
+  addUserMessage(text);
+  processUserInput(text);
+}
+
+function handleKeyDown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 128) + 'px';
+}
+
+function addUserMessage(text) {
+  state.messages.push({ role: 'user', content: text });
+  renderMessage('user', text);
+  saveState();
+}
+
+function addAgentMessage(text, imageUrl = null) {
+  state.messages.push({ role: 'agent', content: text, image: imageUrl });
+  renderMessage('agent', text, imageUrl);
+  saveState();
+}
+
+function renderMessage(role, text, imageUrl = null, scroll = true) {
+  const chatArea = document.getElementById('chatArea');
+  const div = document.createElement('div');
+  div.className = `msg msg-${role}`;
+
+  let html = `<div class="msg-bubble">${formatText(text)}</div>`;
+
+  if (imageUrl) {
+    html += `
+      <div class="msg-image">
+        <img src="${imageUrl}" alt="Generated" onclick="openPreview('${imageUrl}')" loading="lazy">
+        <div class="flex gap-2 mt-2">
+          <button class="quick-action" onclick="downloadImage('${imageUrl}')">⬇️ Download</button>
+          <button class="quick-action" onclick="regenerateImage()">🔄 Regenerate</button>
+          <button class="quick-action" onclick="sendQuickAction('variations')">📑 Variations</button>
+        </div>
+      </div>`;
+  }
+
+  div.innerHTML = html;
+  chatArea.appendChild(div);
+  if (scroll) chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function formatText(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code style="background:#2a2a4a;padding:2px 6px;border-radius:4px;font-size:12px">$1</code>')
+    .replace(/\n/g, '<br>')
+    .replace(/• /g, '<span style="color:#6c5ce7">•</span> ');
+}
+
+function showTyping() {
+  const chatArea = document.getElementById('chatArea');
+  const div = document.createElement('div');
+  div.className = 'msg msg-agent';
+  div.id = 'typingIndicator';
+  div.innerHTML = `<div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function removeTyping() {
+  const el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+// ============= AI LOGIC =============
+function processUserInput(text) {
+  const lower = text.toLowerCase();
+
+  // Help
+  if (lower === 'help' || lower === '?') {
+    showTypingThen(() => {
+      addAgentMessage(`📖 **CreativeAI Help Guide**
+
+**Commands you can use:**
+• **"Create/Generate [description]"** — Generate an image
+• **"Make it more [adjective]"** — Modify the last image
+• **"Change style to [style]"** — Switch artistic style
+• **"Upscale"** — Regenerate at higher quality
+• **"Variations"** — Create similar alternatives
+• **"Change ratio to 16:9"** — Modify aspect ratio
+
+**Controls (Sidebar):**
+• **Templates** — Pre-made prompt starters
+• **Controls** — Adjust style, ratio, quality
+• **Gallery** — View all your creations
+
+**Tips:**
+• Be descriptive for better results
+• Use the style presets to quickly change looks
+• Upload reference images for inspiration`);
+    });
+    return;
+  }
+
+  // Style change
+  if (lower.includes('change style to') || lower.includes('switch to')) {
+    const styles = ['photorealistic', 'artistic', 'anime', '3d-render', 'cinematic', 'abstract'];
+    const found = styles.find(s => lower.includes(s.replace('-', ' ')) || lower.includes(s));
+    if (found) {
+      state.style = found;
+      showTypingThen(() => {
+        addAgentMessage(`✅ Style changed to **${found}**! Your next generation will use this style.\n\nWant me to regenerate your last image with the new style?`);
+      });
+    } else {
+      showTypingThen(() => {
+        addAgentMessage(`Available styles: **Photorealistic, Artistic, Anime, 3D Render, Cinematic, Abstract**\n\nWhich one would you like?`);
+      });
+    }
+    return;
+  }
+
+  // Ratio change
+  if (lower.includes('ratio') || lower.includes('aspect')) {
+    const ratios = ['1:1', '16:9', '9:16', '4:3'];
+    const found = ratios.find(r => lower.includes(r));
+    if (found) {
+      state.ratio = found;
+      showTypingThen(() => {
+        addAgentMessage(`✅ Aspect ratio changed to **${found}**! Next image will use this ratio.`);
+      });
+    }
+    return;
+  }
+
+  // Modify last image
+  if ((lower.includes('make it') || lower.includes('change') || lower.includes('modify') || lower.includes('add')) && state.lastPrompt) {
+    const modification = text;
+    const newPrompt = `${state.lastPrompt}, ${modification}`;
+    showTypingThen(() => {
+      addAgentMessage(`🎨 Got it! I'll modify the image: **${modification}**\n\nGenerating updated version...`);
+      generateImage(newPrompt);
+    });
+    return;
+  }
+
+  // Regenerate
+  if (lower === 'regenerate' || lower === 'retry' || lower === 'again') {
+    if (state.lastPrompt) {
+      showTypingThen(() => {
+        addAgentMessage(`🔄 Regenerating with a new variation...`);
+        generateImage(state.lastPrompt);
+      });
+    } else {
+      showTypingThen(() => {
+        addAgentMessage(`I don't have a previous prompt to regenerate. Please describe what you'd like to create!`);
+      });
+    }
+    return;
+  }
+
+  // Greetings
+  if (['hi', 'hello', 'hey', 'sup'].some(g => lower === g || lower.startsWith(g + ' '))) {
+    showTypingThen(() => {
+      addAgentMessage(`Hey there! 👋 Ready to create something amazing?\n\nJust describe what you want to see, or pick a template from the sidebar!`);
+    });
+    return;
+  }
+
+  // Thanks
+  if (['thanks', 'thank you', 'thx'].some(t => lower.includes(t))) {
+    showTypingThen(() => {
+      addAgentMessage(`You're welcome! 😊 Let me know if you want to create something else or modify anything!`);
+    });
+    return;
+  }
+
+  // Default: treat as image generation prompt
+  if (state.mode === 'video') {
+    showTypingThen(() => {
+      addAgentMessage(`🎬 **Video Generation** is coming soon! For now, I'll create a stunning still image for you.\n\n🖼️ Generating image from your prompt...`);
+      generateImage(text);
+    });
+  } else {
+    showTypingThen(() => {
+      const enhanced = enhancePrompt(text);
+      addAgentMessage(`✨ Great prompt! I'll create that for you.\n\n🎨 **Style:** ${state.style}\n📐 **Ratio:** ${state.ratio}\n⚡ **Quality:** ${state.quality}\n\n⏳ Generating your image...`);
+      generateImage(enhanced);
+    });
+  }
+}
+
+function enhancePrompt(prompt) {
+  const autoEnhance = document.getElementById('autoEnhance')?.checked ?? true;
+  if (!autoEnhance) return prompt;
+
+  const styleTag = styleEnhancers[state.style] || '';
+  const qualityMap = { standard: '', high: 'high quality, detailed', ultra: 'masterpiece, ultra detailed, 8k resolution, best quality' };
+  const qualityTag = qualityMap[state.quality] || '';
+  const negative = document.getElementById('negativePrompt')?.value || '';
+
+  let enhanced = `${prompt}, ${styleTag}, ${qualityTag}`;
+  if (negative) enhanced += `, NOT ${negative}`;
+
+  return enhanced;
+}
+
+function generateImage(prompt) {
+  state.isGenerating = true;
+  state.lastPrompt = prompt;
+
+  const { w, h } = ratioMap[state.ratio];
+  const seed = Math.floor(Math.random() * 999999);
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${w}&height=${h}&seed=${seed}&nologo=true`;
+
+  // Preload the image
+  const img = new Image();
+  img.onload = () => {
+    state.isGenerating = false;
+    state.lastImageUrl = url;
+    addAgentMessage(`✅ **Image generated!** Here's your creation:\n\nClick the image to preview full-size. Use the buttons below to download, regenerate, or create variations.`, url);
+    addToGallery(url, prompt);
+  };
+  img.onerror = () => {
+    state.isGenerating = false;
+    addAgentMessage(`❌ Sorry, there was an error generating the image. Let me try again with a slightly different approach.\n\nPlease try rephrasing your prompt or click **Regenerate**.`);
+  };
+  img.src = url;
+}
+
+function regenerateImage() {
+  if (state.lastPrompt) {
+    addUserMessage('Regenerate');
+    showTypingThen(() => {
+      addAgentMessage(`🔄 Creating a new variation...`);
+      generateImage(state.lastPrompt);
+    });
+  }
+}
+
+function showTypingThen(callback) {
+  showTyping();
+  setTimeout(() => {
+    removeTyping();
+    callback();
+  }, 800 + Math.random() * 700);
+}
+
+// ============= QUICK ACTIONS =============
+function sendQuickAction(action) {
+  switch (action) {
+    case 'enhance':
+      if (state.lastPrompt) {
+        addUserMessage('Enhance the last image — make it higher quality');
+        showTypingThen(() => {
+          addAgentMessage(`🪄 Enhancing with ultra quality settings...`);
+          const enhanced = state.lastPrompt + ', masterpiece, ultra detailed, 8k, sharp focus, professional';
+          generateImage(enhanced);
+        });
+      } else {
+        addAgentMessage(`No previous image to enhance. Create one first!`);
+      }
+      break;
+    case 'variations':
+      if (state.lastPrompt) {
+        addUserMessage('Create variations of the last image');
+        showTypingThen(() => {
+          addAgentMessage(`📑 Generating a new variation with different details...`);
+          generateImage(state.lastPrompt);
+        });
+      }
+      break;
+    case 'upscale':
+      if (state.lastPrompt) {
+        addUserMessage('Upscale the image to maximum quality');
+        showTypingThen(() => {
+          const { w, h } = ratioMap[state.ratio];
+          addAgentMessage(`⬆️ Upscaling to ${w * 2}×${h * 2}...`);
+          const seed = Math.floor(Math.random() * 999999);
+          const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(state.lastPrompt)}?width=${Math.min(w * 2, 2048)}&height=${Math.min(h * 2, 2048)}&seed=${seed}&nologo=true`;
+          const img = new Image();
+          img.onload = () => {
+            state.lastImageUrl = url;
+            addAgentMessage(`✅ **Upscaled!** The image is now at maximum resolution.`, url);
+            addToGallery(url, state.lastPrompt + ' (upscaled)');
+          };
+          img.onerror = () => addAgentMessage(`❌ Upscaling failed. The resolution might be too high. Try standard quality.`);
+          img.src = url;
+        });
+      }
+      break;
+    case 'style':
+      addUserMessage('Show me available styles');
+      showTypingThen(() => {
+        addAgentMessage(`🎨 **Available Styles:**\n\n• **Photorealistic** — DSLR-quality photos\n• **Artistic** — Oil painting & fine art\n• **Anime** — Japanese animation style\n• **3D Render** — CGI & Octane render\n• **Cinematic** — Movie-quality shots\n• **Abstract** — Modern abstract art\n\nCurrent style: **${state.style}**\n\nSay "change style to [name]" to switch!`);
+      });
+      break;
+    case 'help':
+      processUserInput('help');
+      break;
+  }
+}
+
+// ============= TEMPLATES =============
+function useTemplate(template) {
+  const input = document.getElementById('userInput');
+  input.value = template;
+  autoResize(input);
+  input.focus();
+  if (window.innerWidth < 768) toggleSidebar();
+}
+
+// ============= GALLERY =============
+function addToGallery(url, prompt) {
+  state.gallery.unshift({ url, prompt, date: new Date().toISOString() });
+  renderGallery();
+  saveState();
+}
+
+function renderGallery() {
+  const grid = document.getElementById('galleryGrid');
+  const empty = document.getElementById('galleryEmpty');
+  const count = document.getElementById('galleryCount');
+  
+  grid.innerHTML = '';
+  count.textContent = state.gallery.length;
+  empty.style.display = state.gallery.length ? 'none' : 'block';
+
+  state.gallery.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'gallery-item';
+    div.innerHTML = `<img src="${item.url}" alt="Creation ${i+1}" onclick="openPreview('${item.url}')">`;
+    grid.appendChild(div);
+  });
+}
+
+function clearGallery() {
+  if (confirm('Clear all gallery items?')) {
+    state.gallery = [];
+    renderGallery();
+    saveState();
+  }
+}
+
+// ============= FILE UPLOAD =============
+function setupDragDrop() {
+  const zone = document.getElementById('uploadZone');
+  if (!zone) return;
+  
+  ['dragenter', 'dragover'].forEach(evt => {
+    zone.addEventListener(evt, e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  });
+  ['dragleave', 'drop'].forEach(evt => {
+    zone.addEventListener(evt, e => { e.preventDefault(); zone.classList.remove('drag-over'); });
+  });
+  zone.addEventListener('drop', e => {
+    const files = e.dataTransfer.files;
+    handleFiles(files);
+  });
+}
+
+function handleFileUpload(event) {
+  handleFiles(event.target.files);
+}
+
+function handleFiles(files) {
+  const preview = document.getElementById('uploadPreview');
+  Array.from(files).forEach(file => {
+    if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        state.uploadedFiles.push({ name: file.name, data: e.target.result, type: file.type });
+        if (file.type.startsWith('image/')) {
+          const img = document.createElement('img');
+          img.src = e.target.result;
+          img.className = 'upload-thumb';
+          preview.appendChild(img);
+        }
+        addAgentMessage(`📎 **${file.name}** uploaded! I can use this as a reference. Just tell me what you'd like to create based on it.`);
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+}
+
+// ============= CONTROLS =============
+function setMode(mode, btn) {
+  state.mode = mode;
+  updateButtonGroup(btn);
+}
+function setStyle(style, btn) {
+  state.style = style;
+  updateButtonGroup(btn);
+}
+function setRatio(ratio, btn) {
+  state.ratio = ratio;
+  updateButtonGroup(btn);
+}
+function setQuality(quality, btn) {
+  state.quality = quality;
+  updateButtonGroup(btn);
+}
+
+function updateButtonGroup(btn) {
+  if (!btn) return;
+  btn.parentElement.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+// ============= SIDEBAR =============
+function switchSidebarTab(tab) {
+  document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.sidebar-panel').forEach(p => p.classList.add('hidden'));
+  event.target.classList.add('active');
+  document.getElementById(`panel-${tab}`).classList.remove('hidden');
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('active');
+}
+
+// ============= MODALS =============
+function openModal(id) {
+  document.getElementById(id).classList.add('active');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+}
+
+// ============= PREVIEW =============
+function openPreview(url) {
+  document.getElementById('previewImage').src = url;
+  document.getElementById('previewOverlay').classList.add('active');
+}
+function closePreview() {
+  document.getElementById('previewOverlay').classList.remove('active');
+}
+
+// ============= DOWNLOAD =============
+function downloadImage(url) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `creative-ai-${Date.now()}.jpg`;
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+// ============= CHAT MANAGEMENT =============
+function clearChat() {
+  if (confirm('Clear all chat messages?')) {
+    state.messages = [];
+    document.getElementById('chatArea').innerHTML = '';
+    state.lastPrompt = '';
+    state.lastImageUrl = '';
+    showWelcome();
+    saveState();
+  }
+}
+
+// ============= PERSISTENCE =============
+function saveState() {
+  try {
+    const toSave = {
+      messages: state.messages.slice(-50),
+      gallery: state.gallery.slice(0, 50),
+      style: state.style,
+      ratio: state.ratio,
+      quality: state.quality,
+      mode: state.mode,
+      lastPrompt: state.lastPrompt
+    };
+    localStorage.setItem('creativeAI_state', JSON.stringify(toSave));
+  } catch(e) {}
+}
+
+function loadState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('creativeAI_state'));
+    if (saved) {
+      state.messages = saved.messages || [];
+      state.gallery = saved.gallery || [];
+      state.style = saved.style || 'photorealistic';
+      state.ratio = saved.ratio || '1:1';
+      state.quality = saved.quality || 'high';
+      state.mode = saved.mode || 'image';
+      state.lastPrompt = saved.lastPrompt || '';
+      renderGallery();
+    }
+  } catch(e) {}
+}
+
+// Close modals on escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeModal('deployModal');
+    closeModal('settingsModal');
+    closePreview();
+  }
+});
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(modal => {
+  modal.addEventListener('click', e => {
+    if (e.target === modal) closeModal(modal.id);
+  });
+});
+</script>
+</body>
+</html>
