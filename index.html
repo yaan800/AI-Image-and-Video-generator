@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CreativeAI Agent - Troubleshooting Included</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .font-display { font-family: 'Playfair Display', serif; }
+        .gradient-text { background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .glass-panel { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glow { box-shadow: 0 0 40px rgba(245, 158, 11, 0.3); }
+        .message-bubble { max-width: 85%; animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .typing-indicator { display: flex; gap: 4px; padding: 12px 16px; }
+        .typing-indicator span { width: 8px; height: 8px; background: #f59e0b; border-radius: 50%; animation: bounce 1.4s infinite ease-in-out both; }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        .template-card { transition: all 0.3s ease; }
+        .template-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(245, 158, 11, 0.5); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(245, 158, 11, 0.8); }
+        .image-loading { position: relative; overflow: hidden; }
+        .image-loading::after { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(245, 158, 11, 0.3), transparent); animation: shimmer 2s infinite; }
+        @keyframes shimmer { 0% { left: -100%; } 100% { left: 100%; } }
+        .pulse-dot { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .check-item { transition: all 0.3s ease; }
+        .check-item:hover { transform: translateX(5px); }
+        .check-item.checked { opacity: 0.5; }
+        .check-item.checked .check-icon { background: #10b981; border-color: #10b981; }
+    </style>
+</head>
+<body class="bg-slate-950 text-white min-h-screen">
+    <!-- Deploy Troubleshooting Modal -->
+    <div id="deployModal" class="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 hidden overflow-y-auto">
+        <div class="min-h-screen px-4 py-8 flex items-center justify-center">
+            <div class="glass-panel rounded-2xl p-8 max-w-4xl w-full glow">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="rocket" class="w-8 h-8 text-amber-400"></i>
+                        <h2 class="text-2xl font-bold font-display">🚀 Deploy & Troubleshoot</h2>
+                    </div>
+                    <button onclick="closeDeployModal()" class="p-2 hover:bg-white/10 rounded-full transition-colors">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                
+                <!-- Tab Navigation -->
+                <div class="flex gap-2 mb-6 border-b border-white/10 pb-4">
+                    <button onclick="showDeployTab('github')" id="tab-github" class="px-4 py-2 rounded-lg bg-amber-500/20 text-amber-400 font-medium transition-all">GitHub Pages</button>
+                    <button onclick="showDeployTab('troubleshoot')" id="tab-troubleshoot" class="px-4 py-2 rounded-lg hover:bg-white/5 text-slate-400 transition-all">🔴 Fix 404 Error</button>
+                    <button onclick="showDeployTab('other')" id="tab-other" class="px-4 py-2 rounded-lg hover:bg-white/5 text-slate-400 transition-all">Other Options</button>
+                </div>
+
+                <!-- GitHub Pages Tab -->
+                <div id="content-github" class="deploy-content">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-semibold text-amber-400">Step-by-Step Setup</h3>
+                            <div class="space-y-3 text-sm text-slate-300">
+                                <div class="flex gap-3 p-3 bg-white/5 rounded-lg">
+                                    <span class="text-amber-400 font-bold">1</span>
+                                    <span>Go to your repo on GitHub</span>
+                                </div>
+                                <div class="flex gap-3 p-3 bg-white/5 rounded-lg">
+                                    <span class="text-amber-400 font-bold">2</span>
+                                    <span>Click <strong>Settings</strong> tab (⚙️ at top)</span>
+                                </div>
+                                <div class="flex gap-3 p-3 bg-white/5 rounded-lg">
+                                    <span class="text-amber-400 font-bold">3</span>
+                                    <span>Click <strong>Pages</strong> in left sidebar</span>
+                                </div>
+                                <div class="flex gap-3 p-3 bg-white/5 rounded-lg">
+                                    <span class="text-amber-400 font-bold">4</span>
+                                    <span>Under "Build and deployment":</span>
+                                </div>
+                                <div class="pl-8 text-xs space-y-1 text-slate-400">
+                                    <div>• Source: <span class="text-white">Deploy from a branch</span></div>
+                                    <div>• Branch: <span class="text-white">main</span> / <span class="text-white">(root)</span></div>
+                                    <div>• Click <span class="text-green-400 font-bold">💚 SAVE</span></div>
+                                </div>
+                                <div class="flex gap-3 p-3 bg-white/5 rounded-lg">
+                                    <span class="text-amber-400 font-bold">5</span>
+                                    <span>Wait 1-2 minutes ⏳</span>
+                                </div>
+                                <div class="flex gap-3 p-3 bg-amber-500/20 rounded-lg border border-amber-500/30">
+                                    <span class="text-amber-400 font-bold">✓</span>
+                                    <span>Your URL will appear at the top!</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-semibold text-amber-400">Expected URL Format</h3>
+                            <div class="p-4 bg-slate-900 rounded-lg border border-slate-700">
+                                <code class="text-green-400 break-all">
+                                    https://USERNAME.github.io/REPO-NAME/
+                                </code>
+                            </div>
+                            <div class="text-sm text-slate-400">
+                                <p class="mb-2">Example:</p>
+                                <p class="text-slate-500">If username is "john" and repo is "my-app":</p>
+                                <p class="text-amber-400">https://john.github.io/my-app/</p>
+                            </div>
+                            <div class="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                                <p class="text-sm text-blue-400">
+                                    <i data-lucide="info" class="w-4 h-4 inline mr-1"></i>
+                                    The URL is case-sensitive! Use exact repo name.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Troubleshoot 404 Tab -->
+                <div id="content-troubleshoot" class="deploy-content hidden">
+                    <div class="space-y-6">
+                        <div class="text-center p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+                            <i data-lucide="alert-triangle" class="w-12 h-12 text-red-400 mx-auto mb-2"></i>
+                            <h3 class="text-xl font-bold text-red-400">404 Error Troubleshooting</h3>
+                            <p class="text-slate-400">Follow this checklist to fix the issue</p>
+                        </div>
+
+                        <!-- Diagnostic Tool -->
+                        <div class="p-4 bg-slate-900/50 rounded-xl border border-slate-700">
+                            <h4 class="font-semibold text-amber-400 mb-3">🔍 Quick Diagnostic Tool</h4>
+                            <div class="grid md:grid-cols-2 gap-4 mb-4">
+                                <input type="text" id="diagnosticUsername" placeholder="Your GitHub username" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500">
+                                <input type="text" id="diagnosticRepo" placeholder="Repository name" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-amber-500">
+                            </div>
+                            <button onclick="runDiagnostic()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold py-2 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                <i data-lucide="search" class="w-4 h-4"></i>
+                                Check My Setup
+                            </button>
+                            <div id="diagnosticResult" class="mt-4 hidden"></div>
+                        </div>
+
+                        <!-- Checklist -->
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="space-y-2">
+                                <h4 class="font-semibold text-slate-300 mb-3">☐ Common Causes</h4>
+                                
+                                <label class="check-item flex items-start gap-3 p-3 bg-white/5 rounded-lg cursor-pointer">
+                                    <div class="check-icon w-5 h-5 rounded border-2 border-slate-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <i data-lucide="check" class="w-3 h-3 text-white hidden check-mark"></i>
+                                    </div>
+                                    <div class="text-sm">
+                                        <div class="font-medium">File named correctly?</div>
+                                        <div class="text-slate-500 text-xs">Must be exactly <code class="text-amber-400">index.html</code> (lowercase)</div>
+                                    </div>
+                                    <input type="checkbox" class="hidden" onchange="toggleCheck(this)">
+                                </label>
+
+                                <label class="check-item flex items-start gap-3 p-3 bg-white/5 rounded-lg cursor-pointer">
+                                    <div class="check-icon w-5 h-5 rounded border-2 border-slate-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <i data-lucide="check" class="w-3 h-3 text-white hidden check-mark"></i>
+                                    </div>
+                                    <div class="text-sm">
+                                        <div class="font-medium">File in root folder?</div>
+                                        <div class="text-slate-500 text-xs">Should not be in a subfolder</div>
+                                    </div>
+                                    <input type="checkbox" class="hidden" onchange="toggleCheck(this)">
+                                </label>
+
+                                <label class="check-item flex items-start gap-3 p-3 bg-white/5 rounded-lg cursor-pointer">
+                                    <div class="check-icon w-5 h-5 rounded border-2 border-slate-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <i data-lucide="check" class="w-3 h-3 text-white hidden check-mark"></i>
+                                    </div>
+                                    <div class="text-sm">
+                                        <div class="font-medium">Repo is public?</div>
+                                        <div class="text-slate-500 text-xs">Private repos can't use GitHub Pages for free</div>
+                                    </div>
+                                    <input type="checkbox" class="hidden" onchange="toggleCheck(this)">
+                                </label>
+
+                                <label class="check-item flex items-start gap-3 p-3 bg-white/5 rounded-lg cursor-pointer">
+                                    <div class="check-icon w-5 h-5 rounded border-2 border-slate-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <i data-lucide="check" class="w-3 h-3 text-white hidden check-mark"></i>
+                                    </div>
+                                    <div class="text-sm">
+                                        <div class="font-medium">Pages enabled in Settings?</div>
+                                        <div class="text-slate-500 text-xs">Check Settings → Pages</div>
+                                    </div>
+                                    <input type="checkbox" class="hidden" onchange="toggleCheck(this)">
+                                </label>
+                            </div>
+
+                            <div class="space-y-2">
+                                <h4 class="font-semibold text-slate-300 mb-3">☐ URL Issues</h4>
+                                
+                                <label class="check-item flex items-start gap-3 p-3 bg-white/5 rounded-lg cursor-pointer">
+                                    <div class="check-icon w-5 h-5 rounded border-2 border-slate-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <i data-lucide="check" class="w-3 h-3 text-white hidden check-mark"></i>
+                                    </div>
+                                    <div class="text-sm">
+                                        <div class="font-medium">Correct URL format?</div>
+                                        <div class="text-slate-500 text-xs">https://USER.github.io/REPO/</div>
+                                    </div>
+                                    <input type="checkbox" class="hidden" onchange="toggleCheck(this)">
+                                </label>
+
+                                <label class="check-item flex items-start gap-3 p-3 bg-white/5 rounded-lg cursor-pointer">
+                                    <div class="check-icon w-5 h-5 rounded border-2 border-slate-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <i data-lucide="check" class="w-3 h-3 text-white hidden check-mark"></i>
+                                    </div>
+                                    <div class="text-sm">
+                                        <div class="font-medium">Trailing slash included?</div>
+                                        <div class="text-slate-500 text-xs">Must end with / for sub-path repos</div>
+                                    </div>
+                                    <input type="checkbox" class="hidden" onchange="toggleCheck(this)">
+                                </label>
+
+                                <label class="check-item flex items-start gap-3 p-3 bg-white/5 rounded-lg cursor-pointer">
+                                    <div class="check-icon w-5 h-5 rounded border-2 border-slate-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <i data-lucide="check" class="w-3 h-3 text-white hidden check-mark"></i>
+                                    </div>
+                                    <div class="text-sm">
+                                        <div class="font-medium">Waited 2-5 minutes?</div>
+                                        <div class="text-slate-500 text-xs">GitHub Pages takes time to deploy</div>
+                                    </div>
+                                    <input type="checkbox" class="hidden" onchange="toggleCheck(this)">
+                                </label>
+
+                                <label class="check-item flex items-start gap-3 p-3 bg-white/5 rounded-lg cursor-pointer">
+                                    <div class="check-icon w-5 h-5 rounded border-2 border-slate-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <i data-lucide="check" class="w-3 h-3 text-white hidden check-mark"></i>
+                                    </div>
+                                    <div class="text-sm">
+                                        <div class="font-medium">Hard refresh tried?</div>
+                                        <div class="text-slate-500 text-xs">Ctrl+Shift+R (Win) or Cmd+Shift+R (Mac)</div>
+                                    </div>
+                                    <input type="checkbox" class="hidden" onchange="toggleCheck(this)">
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Quick Fixes -->
+                        <div class="grid md:grid-cols-3 gap-4">
+                            <div class="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                                <i data-lucide="refresh-cw" class="w-8 h-8 text-blue-400 mb-2"></i>
+                                <h5 class="font-semibold text-blue-400">Fix 1: Re-save</h5>
+                                <p class="text-xs text-slate-400 mt-1">Go to Settings → Pages and click Save again. Sometimes it needs a refresh.</p>
+                            </div>
+                            <div class="p-4 bg-purple-500/10 border border-purple-500/30 rounded-xl">
+                                <i data-lucide="git-commit" class="w-8 h-8 text-purple-400 mb-2"></i>
+                                <h5 class="font-semibold text-purple-400">Fix 2: New Commit</h5>
+                                <p class="text-xs text-slate-400 mt-1">Make any small change to index.html and commit. This triggers redeployment.</p>
+                            </div>
+                            <div class="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
+                                <i data-lucide="folder-open" class="w-8 h-8 text-green-400 mb-2"></i>
+                                <h5 class="font-semibold text-green-400">Fix 3: Check Location</h5>
+                                <p class="text-xs text-slate-400 mt-1">Ensure index.html is at the ROOT of your repo, not in a docs/ folder.</p>
+                            </div>
+                        </div>
+
+                        <!-- Most Common Fix -->
+                        <div class="p-4 bg-amber-500/20 border-2 border-amber-500/50 rounded-xl">
+                            <div class="flex items-start gap-3">
+                                <i data-lucide="star" class="w-6 h-6 text-amber-400 flex-shrink-0 mt-1"></i>
+                                <div>
+                                    <h4 class="font-semibold text-amber-400">🔥 Most Common Fix</h4>
+                                    <p class="text-sm text-slate-300 mt-1">
+                                        Your repository is likely <strong>PRIVATE</strong>. GitHub Pages only works on public repositories with free accounts.
+                                    </p>
+                                    <div class="mt-3 p-3 bg-slate-900 rounded">
+                                        <p class="text-xs text-slate-400 mb-2">To fix: Settings → General → Danger Zone → Change visibility → Make public</p>
+                                        <p class="text-xs text-slate-500">Or upgrade to GitHub Pro ($4/month) for private Pages</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Other Options Tab -->
+                <div id="content-other" class="deploy-content hidden">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <a href="https://app.netlify.com/drop" target="_blank" class="p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all border border-white/10 group">
+                            <div class="flex items-center gap-3 mb-2">
+                                <i data-lucide="zap" class="w-6 h-6 text-green-400"></i>
+                                <span class="font-semibold">Netlify Drop</span>
+                            </div>
+                            <p class="text-sm text-slate-400">Drag & drop your folder. Easiest option!</p>
+                        </a>
+                        <a href="https://vercel.com" target="_blank" class="p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all border border-white/10 group">
+                            <div class="flex items-center gap-3 mb-2">
+                                <i data-lucide="triangle" class="w-6 h-6 text-white"></i>
+                                <span class="font-semibold">Vercel</span>
+                            </div>
+                            <p class="text-sm text-slate-400">Import from GitHub. Great for projects.</p>
+                        </a>
+                        <a href="https://surge.sh" target="_blank" class="p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all border border-white/10 group">
+                            <div class="flex items-center gap-3 mb-2">
+                                <i data-lucide="cloud" class="w-6 h-6 text-pink-400"></i>
+                                <span class="font-semibold">Surge.sh</span>
+                            </div>
+                            <p class="text-sm text-slate-400">Command line deployment. Very fast.</p>
+                        </a>
+                        <div class="p-4 bg-white/5 rounded-xl border border-white/10">
+                            <div class="flex items-center gap-3 mb-2">
+                                <i data-lucide="wifi" class="w-6 h-6 text-blue-400"></i>
+                                <span class="font-semibold">Local WiFi</span>
+                            </div>
+                            <code class="text-xs bg-slate-900 p-2 rounded block mt-2">python -m http.server 3000</code>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-6 border-t border-white/10 flex justify-between items-center">
+                    <p class="text-sm text-slate-500">Need more help? Check the GitHub Docs</p>
+                    <button onclick="closeDeployModal()" class="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 hidden">
+        <div class="h-full overflow-y-auto">
+            <div class="min-h-screen px-4 py-8 flex items-center justify-center">
+                <div class="glass-panel rounded-2xl p-8 max-w-4xl w-full">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="settings" class="w-8 h-8 text-amber-400"></i>
+                            <h2 class="text-2xl font-bold font-display">Settings</h2>
+                        </div>
+                        <button onclick="closeSettings()" class="p-2 hover:bg-white/10 rounded-full transition-colors">
+                            <i data-lucide="x" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-lg font-semibold text-amber-400 mb-4">Generation Settings</h3>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm text-slate-400 mb-2">Default Style</label>
+                                    <select id="defaultStyle" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:border-amber-500">
+                                        <option value="photorealistic">Photorealistic</option>
+                                        <option value="artistic">Artistic</option>
+                                        <option value="anime">Anime</option>
+                                        <option value="cinematic">Cinematic</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm text-slate-400 mb-2">Default Quality</label>
+                                    <select id="defaultQuality" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 focus:outline-none focus:border-amber-500">
+                                        <option value="standard">Standard</option>
+                                        <option value="high">High</option>
+                                        <option value="ultra">Ultra</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm text-slate-400 mb-2">Creativity Level</label>
+                                    <input type="range" min="0" max="100" value="70" class="w-full accent-amber-500" id="creativitySlider">
+                                    <div class="flex justify-between text-xs text-slate-500 mt-1">
+                                        <span>Conservative</span>
+                                        <span>Balanced</span>
+                                        <span>Experimental</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-amber-400 mb-4">Preferences</h3>
+                            <div class="space-y-4">
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" checked class="w-5 h-5 accent-amber-500 rounded">
+                                    <span>Auto-save to gallery</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" checked class="w-5 h-5 accent-amber-500 rounded">
+                                    <span>Sound notifications</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" class="w-5 h-5 accent-amber-500 rounded">
+                                    <span>Dark mode (always on)</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" checked class="w-5 h-5 accent-amber-500 rounded">
+                                    <span>Show generation tips</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-8 pt-6 border-t border-white/10 flex justify-end gap-4">
+                        <button onclick="closeSettings()" class="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">Cancel</button>
+                        <button onclick="saveSettings()" class="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold rounded-lg transition-colors">Save Changes</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Screen Image Modal -->
+    <div id="imageModal" class="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4">
+        <button onclick="closeImageModal()" class="absolute top-4 right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+        <img id="modalImage" src="" alt="Full screen" class="max-w-full max-h-[90vh] object-contain rounded-lg">
+    </div>
+
+    <!-- Help Modal -->
+    <div id="helpModal" class="fixed inset-0 bg-black/90 backdrop-blur-xl z-50 hidden">
+        <div class="h-full overflow-y-auto">
+            <div class="min-h-screen px-4 py-8 flex items-center justify-center">
+                <div class="glass-panel rounded-2xl p-8 max-w-3xl w-full">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="help-circle" class="w-8 h-8 text-amber-400"></i>
+                            <h2 class="text-2xl font-bold font-display">How to Use Your AI Agent</h2>
+                        </div>
+                        <button onclick="closeHelp()" class="p-2 hover:bg-white/10 rounded-full transition-colors">
+                            <i data-lucide="x" class="w-6 h-6"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-4 text-slate-300">
+                        <div class="p-4 bg-white/5 rounded-lg">
+                            <h4 class="font-semibold text-amber-400 mb-2">🎨 Creating Images</h4>
+                            <p class="text-sm">Just type what you want to create. Be descriptive! Example: "A serene Japanese garden with cherry blossoms at sunset, watercolor style"</p>
+                        </div>
+                        <div class="p-4 bg-white/5 rounded-lg">
+                            <h4 class="font-semibold text-amber-400 mb-2">💬 Chat Commands</h4>
+                            <p class="text-sm">The agent understands natural language. Try: "make it brighter", "change to anime style", "create a variation"</p>
+                        </div>
+                        <div class="p-4 bg-white/5 rounded-lg">
+                            <h4 class="font-semibold text-amber-400 mb-2">📎 Upload & Edit</h4>
+                            <p class="text-sm">Upload images using the paperclip button. Ask the agent to modify them: "add a sunset background" or "make it look like a painting"</p>
+                        </div>
+                        <div class="p-4 bg-white/5 rounded-lg">
+                            <h4 class="font-semibold text-amber-400 mb-2">⚙️ Quick Actions</h4>
+                            <p class="text-sm">After generating, use quick actions: Enhance, Upscale, Create Variations, or Change Style</p>
+                        </div>
+                        <div class="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                            <h4 class="font-semibold text-amber-400 mb-2">💡 Pro Tips</h4>
+                            <ul class="text-sm list-disc list-inside space-y-1">
+                                <li>Be specific about lighting, mood, and style</li>
+                                <li>Use templates as starting points</li>
+                                <li>Iterate by asking for modifications</li>
+                                <li>All your creations are auto-saved in the gallery</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="min-h-screen flex flex-col md:flex-row">
+        <!-- Sidebar -->
+        <aside class="w-full md:w-72 glass-panel md:min-h-screen flex flex-col">
+            <div class="p-6 border-b border-white/10">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
+                        <i data-lucide="sparkles" class="w-5 h-5 text-slate-950"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold font-display gradient-text">CreativeAI</h1>
+                        <p class="text-xs text-slate-500">Your Creative Agent</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modes -->
+            <div class="p-4 border-b border-white/10">
+                <p class="text-xs text-slate-500 uppercase tracking-wider mb-3 px-2">Mode</p>
+                <div class="space-y-2">
+                    <button onclick="setMode('image')" id="mode-image" class="mode-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 transition-all">
+                        <i data-lucide="image" class="w-5 h-5"></i>
+                        <span class="font-medium">Image Generation</span>
+                    </button>
+                    <button onclick="setMode('video')" id="mode-video" class="mode-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 transition-all">
+                        <i data-lucide="video" class="w-5 h-5"></i>
+                        <span class="font-medium">Video Generation</span>
+                        <span class="ml-auto text-xs bg-slate-700 px-2 py-0.5 rounded">Beta</span>
+                    </button>
+                    <button onclick="setMode('edit')" id="mode-edit" class="mode-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-slate-400 transition-all">
+                        <i data-lucide="wand-2" class="w-5 h-5"></i>
+                        <span class="font-medium">Edit & Modify</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Templates -->
+            <div class="flex-1 overflow-hidden flex flex-col">
+                <div class="p-4 border-b border-white/10">
+                    <div class="flex items-center justify-between">
+                        <p class="text-xs text-slate-500 uppercase tracking-wider px-2">Templates</p>
+                        <button onclick="refreshTemplates()" class="p-1 hover:bg-white/10 rounded transition-colors">
+                            <i data-lucide="refresh-cw" class="w-4 h-4 text-slate-500"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3" id="templateList">
+                    <!-- Templates injected by JS -->
+                </div>
+            </div>
+
+            <!-- Bottom Actions -->
+            <div class="p-4 border-t border-white/10 space-y-2">
+                <button onclick="openDeployModal()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-amber-600/20 hover:from-amber-500/30 hover:to-amber-600/30 border border-amber-500/30 text-amber-400 transition-all">
+                    <i data-lucide="rocket" class="w-5 h-5"></i>
+                    <span class="font-medium">Deploy & Share</span>
+                </button>
+                <button onclick="openSettings()" class="w-full flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-white/5 text-slate-400 transition-all text-sm">
+                    <i data-lucide="settings" class="w-4 h-4"></i>
+                    <span>Settings</span>
+                </button>
+                <button onclick="openHelp()" class="w-full flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-white/5 text-slate-400 transition-all text-sm">
+                    <i data-lucide="help-circle" class="w-4 h-4"></i>
+                    <span>Help</span>
+                </button>
+                <button onclick="clearAllData()" class="w-full flex items-center gap-3 px-4 py-2 rounded-xl hover:bg-red-500/20 text-red-400 transition-all text-sm">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <span>Clear All Data</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col h-screen overflow-hidden">
+            <!-- Header -->
+            <header class="glass-panel px-6 py-4 flex items-center justify-between border-b border-white/10">
+                <div class="flex items-center gap-4">
+                    <h2 id="currentModeTitle" class="text-lg font-semibold">Image Generation</h2>
+                    <span class="px-3 py-1 bg-green-500/20 text-green-400 text-xs rounded-full border border-green-500/30 flex items-center gap-1">
+                        <span class="w-2 h-2 bg-green-400 rounded-full pulse-dot"></span>
+                        Agent Online
+                    </span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="showGallery()" class="p-2 hover:bg-white/10 rounded-lg transition-colors relative">
+                        <i data-lucide="grid" class="w-5 h-5"></i>
+                        <span id="galleryCount" class="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 text-slate-950 text-xs rounded-full flex items-center justify-center font-bold hidden">0</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Chat Area -->
+            <div class="flex-1 overflow-hidden flex flex-col">
+                <div id="chatContainer" class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-4">
+                    <!-- Welcome Message -->
+                    <div class="message-bubble ml-auto bg-gradient-to-br from-amber-500/20 to-amber-600/20 border border-amber-500/30 rounded-2xl rounded-tr-sm p-5 max-w-[85%] md:max-w-[70%]">
+                        <p class="font-medium text-amber-400 mb-2">👋 Hello! I'm your Creative AI Agent</p>
+                        <p class="text-slate-300 text-sm leading-relaxed">
+                            I can create stunning images and videos from your descriptions. Just tell me what you'd like to make!
+                        </p>
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <span class="text-xs bg-slate-800 px-3 py-1 rounded-full text-slate-400">🎨 Image generation</span>
+                            <span class="text-xs bg-slate-800 px-3 py-1 rounded-full text-slate-400">🎬 Video creation</span>
+                            <span class="text-xs bg-slate-800 px-3 py-1 rounded-full text-slate-400">✏️ Edit & modify</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="glass-panel border-t border-white/10 p-4">
+                    <!-- Upload Preview -->
+                    <div id="uploadPreview" class="hidden mb-3 p-3 bg-slate-800 rounded-lg flex items-center gap-3">
+                        <div class="relative">
+                            <img id="previewImg" src="" alt="Preview" class="w-16 h-16 object-cover rounded-lg">
+                            <button onclick="clearUpload()" class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center hover:bg-red-600">
+                                <i data-lucide="x" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                        <span class="text-sm text-slate-400">Image ready for editing</span>
+                    </div>
+
+                    <!-- Quick Settings -->
+                    <div class="flex items-center gap-3 mb-3 flex-wrap">
+                        <select id="styleSelect" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-amber-500">
+                            <option value="photorealistic">📷 Photorealistic</option>
+                            <option value="artistic">🎨 Artistic</option>
+                            <option value="anime">👾 Anime</option>
+                            <option value="3d">🧊 3D Render</option>
+                            <option value="cinematic">🎬 Cinematic</option>
+                            <option value="abstract">🔮 Abstract</option>
+                        </select>
+                        <select id="aspectSelect" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-amber-500">
+                            <option value="1:1">1:1 Square</option>
+                            <option value="16:9">16:9 Landscape</option>
+                            <option value="9:16">9:16 Portrait</option>
+                            <option value="4:3">4:3 Standard</option>
+                        </select>
+                        <select id="qualitySelect" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-amber-500">
+                            <option value="standard">Standard</option>
+                            <option value="high" selected>High Quality</option>
+                            <option value="ultra">Ultra HD</option>
+                        </select>
+                    </div>
+
+                    <!-- Input -->
+                    <div class="flex gap-3">
+                        <input type="file" id="fileInput" accept="image/*,video/*" class="hidden" onchange="handleFileUpload(event)">
+                        <button onclick="document.getElementById('fileInput').click()" class="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors" title="Upload image/video">
+                            <i data-lucide="paperclip" class="w-5 h-5 text-slate-400"></i>
+                        </button>
+                        <div class="flex-1 relative">
+                            <textarea id="userInput" placeholder="Describe what you want to create..." 
+                                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 pr-12 resize-none focus:outline-none focus:border-amber-500 transition-colors"
+                                rows="1" style="min-height: 48px; max-height: 120px;"
+                                oninput="this.style.height = 'auto'; this.style.height = Math.min(this.scrollHeight, 120) + 'px';"
+                                onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); sendMessage();}"></textarea>
+                        </div>
+                        <button onclick="sendMessage()" id="sendBtn" class="p-3 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-xl transition-colors font-medium">
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-2">Press Enter to send, Shift+Enter for new line</p>
+                </div>
+            </div>
+
+            <!-- Gallery Panel (Slide-over) -->
+            <div id="galleryPanel" class="fixed inset-y-0 right-0 w-full md:w-96 glass-panel border-l border-white/10 transform translate-x-full transition-transform duration-300 z-40 flex flex-col">
+                <div class="p-6 border-b border-white/10 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold font-display">Your Gallery</h3>
+                    <button onclick="hideGallery()" class="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div id="galleryGrid" class="flex-1 overflow-y-auto custom-scrollbar p-4 grid grid-cols-2 gap-3">
+                    <!-- Gallery items -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // State
+        let currentMode = 'image';
+        let chatHistory = JSON.parse(localStorage.getItem('chatHistory')) || [];
+        let gallery = JSON.parse(localStorage.getItem('gallery')) || [];
+        let uploadedFile = null;
+        let isGenerating = false;
+
+        // Templates
+        const templates = [
+            { id: 1, name: 'Portrait Photo', prompt: 'Professional portrait photography, soft natural lighting, shallow depth of field, 85mm lens, bokeh background, photorealistic', icon: 'user' },
+            { id: 2, name: 'Cinematic Scene', prompt: 'Cinematic movie still, dramatic lighting, film grain, anamorphic lens flare, color graded, 2.39:1 aspect ratio', icon: 'film' },
+            { id: 3, name: 'Nature Landscape', prompt: 'Breathtaking nature landscape, golden hour lighting, mountains in background, foreground interest, vibrant colors, 8K resolution', icon: 'mountain' },
+            { id: 4, name: 'Product Shot', prompt: 'Professional product photography, clean white background, soft shadows, studio lighting, commercial style, sharp focus', icon: 'box' },
+            { id: 5, name: 'Architecture', prompt: 'Modern architectural photography, geometric lines, dramatic perspective, blue hour lighting, minimalist composition', icon: 'building-2' },
+            { id: 6, name: 'Fantasy Art', prompt: 'Epic fantasy artwork, magical atmosphere, glowing elements, highly detailed, concept art style, trending on ArtStation', icon: 'sparkles' },
+            { id: 7, name: 'Street Photography', prompt: 'Candid street photography, urban environment, decisive moment, black and white or muted colors, documentary style', icon: 'camera' },
+            { id: 8, name: 'Food Photography', prompt: 'Appetizing food photography, overhead angle, natural lighting, rustic styling, shallow depth of field, editorial quality', icon: 'utensils' },
+            { id: 9, name: 'Anime Style', prompt: 'Anime style illustration, vibrant colors, detailed background, cinematic composition, studio ghibli inspired, cel shading', icon: 'smile' },
+            { id: 10, name: 'Cyberpunk', prompt: 'Cyberpunk cityscape, neon lights, rain, futuristic architecture, blade runner aesthetic, night scene, highly detailed', icon: 'cpu' },
+            { id: 11, name: 'Watercolor', prompt: 'Watercolor painting, soft edges, flowing colors, artistic interpretation, paper texture visible, impressionistic style', icon: 'droplet' },
+            { id: 12, name: 'Logo Design', prompt: 'Minimalist logo design, clean vector style, professional branding, simple geometric shapes, memorable icon', icon: 'hexagon' }
+        ];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTemplates();
+            loadChatHistory();
+            updateGalleryCount();
+            renderGallery();
+        });
+
+        // Modal functions
+        function openDeployModal() {
+            document.getElementById('deployModal').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function closeDeployModal() {
+            document.getElementById('deployModal').classList.add('hidden');
+        }
+
+        function showDeployTab(tab) {
+            document.querySelectorAll('.deploy-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`content-${tab}`).classList.remove('hidden');
+            document.querySelectorAll('#deployModal button[id^="tab-"]').forEach(el => {
+                el.classList.remove('bg-amber-500/20', 'text-amber-400');
+                el.classList.add('text-slate-400');
+            });
+            document.getElementById(`tab-${tab}`).classList.remove('text-slate-400');
+            document.getElementById(`tab-${tab}`).classList.add('bg-amber-500/20', 'text-amber-400');
+            lucide.createIcons();
+        }
+
+        // Diagnostic tool
+        function runDiagnostic() {
+            const username = document.getElementById('diagnosticUsername').value.trim();
+            const repo = document.getElementById('diagnosticRepo').value.trim();
+            const resultDiv = document.getElementById('diagnosticResult');
+            
+            if (!username || !repo) {
+                resultDiv.innerHTML = '<p class="text-red-400 text-sm">Please enter both username and repo name</p>';
+                resultDiv.classList.remove('hidden');
+                return;
+            }
+
+            const url = `https://${username}.github.io/${repo}/`;
+            const repoUrl = `https://github.com/${username}/${repo}`;
+            
+            resultDiv.innerHTML = `
+                <div class="p-4 bg-slate-900 rounded-lg border border-slate-700 space-y-3">
+                    <div>
+                        <p class="text-xs text-slate-500 mb-1">Your URL should be:</p>
+                        <a href="${url}" target="_blank" class="text-amber-400 font-mono text-sm break-all hover:underline">${url}</a>
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="${url}" target="_blank" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-950 text-sm font-medium py-2 rounded-lg text-center transition-colors">
+                            Test URL
+                        </a>
+                        <a href="${repoUrl}/settings/pages" target="_blank" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium py-2 rounded-lg text-center transition-colors">
+                            Check Settings
+                        </a>
+                    </div>
+                    <div class="text-xs text-slate-500">
+                        <p>🔍 Quick checks:</p>
+                        <ul class="list-disc list-inside mt-1 space-y-1">
+                            <li>Is the repo name exactly "${repo}"? (case-sensitive)</li>
+                            <li>Is the file named "index.html" in the root?</li>
+                            <li>Is the repo public?</li>
+                            <li>Did you wait 2-5 minutes after enabling Pages?</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+            resultDiv.classList.remove('hidden');
+        }
+
+        // Checklist
+        function toggleCheck(checkbox) {
+            const item = checkbox.closest('.check-item');
+            const mark = item.querySelector('.check-mark');
+            if (checkbox.checked) {
+                item.classList.add('checked');
+                mark.classList.remove('hidden');
+            } else {
+                item.classList.remove('checked');
+                mark.classList.add('hidden');
+            }
+            lucide.createIcons();
+        }
+
+        function openSettings() {
+            document.getElementById('settingsModal').classList.remove('hidden');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.add('hidden');
+        }
+
+        function saveSettings() {
+            closeSettings();
+            showNotification('Settings saved successfully!');
+        }
+
+        function openHelp() {
+            document.getElementById('helpModal').classList.remove('hidden');
+        }
+
+        function closeHelp() {
+            document.getElementById('helpModal').classList.add('hidden');
+        }
+
+        function clearAllData() {
+            if (confirm('Are you sure? This will delete all chat history and gallery images.')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('bg-amber-500/20', 'text-amber-400', 'border-amber-500/30');
+                btn.classList.add('text-slate-400');
+            });
+            const activeBtn = document.getElementById(`mode-${mode}`);
+            activeBtn.classList.remove('text-slate-400');
+            activeBtn.classList.add('bg-amber-500/20', 'text-amber-400', 'border', 'border-amber-500/30');
+            
+            const titles = {
+                image: 'Image Generation',
+                video: 'Video Generation',
+                edit: 'Edit & Modify'
+            };
+            document.getElementById('currentModeTitle').textContent = titles[mode];
+            
+            addMessage('agent', `Switched to ${titles[mode]} mode. What would you like to ${mode === 'edit' ? 'edit' : 'create'}?`);
+        }
+
+        function renderTemplates() {
+            const container = document.getElementById('templateList');
+            container.innerHTML = templates.map(t => `
+                <button onclick="useTemplate(${t.id})" class="template-card w-full text-left p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 transition-all group">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
+                            <i data-lucide="${t.icon}" class="w-5 h-5 text-slate-400 group-hover:text-amber-400 transition-colors"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-sm text-slate-200">${t.name}</p>
+                            <p class="text-xs text-slate-500 truncate max-w-[140px]">${t.prompt}</p>
+                        </div>
+                    </div>
+                </button>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function useTemplate(id) {
+            const template = templates.find(t => t.id === id);
+            document.getElementById('userInput').value = template.prompt;
+            document.getElementById('userInput').focus();
+            addMessage('agent', `Template "${template.name}" loaded! Modify the prompt as needed and send when ready.`);
+        }
+
+        function refreshTemplates() {
+            renderTemplates();
+            showNotification('Templates refreshed');
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            uploadedFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('previewImg').src = e.target.result;
+                document.getElementById('uploadPreview').classList.remove('hidden');
+                addMessage('agent', `Image "${file.name}" uploaded! Tell me what modifications you'd like to make.`);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearUpload() {
+            uploadedFile = null;
+            document.getElementById('uploadPreview').classList.add('hidden');
+            document.getElementById('fileInput').value = '';
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            
+            if (!text && !uploadedFile) return;
+            
+            const userMessage = text || (uploadedFile ? `[Working with uploaded image: ${uploadedFile.name}]` : '');
+            addMessage('user', userMessage);
+            input.value = '';
+            input.style.height = 'auto';
+            
+            // Show typing
+            showTyping();
+            
+            // Process
+            await processAgentResponse(text, uploadedFile);
+        }
+
+        function addMessage(sender, text, mediaData = null) {
+            const container = document.getElementById('chatContainer');
+            const isAgent = sender === 'agent';
+            
+            let mediaHtml = '';
+            if (mediaData) {
+                if (mediaData.type === 'image') {
+                    mediaHtml = `
+                        <div class="mt-3 rounded-xl overflow-hidden image-loading bg-slate-800">
+                            <img src="${mediaData.url}" alt="Generated" class="w-full h-auto cursor-pointer hover:opacity-90 transition-opacity" onclick="openImageModal('${mediaData.url}')">
+                        </div>
+                        <div class="flex gap-2 mt-3">
+                            <a href="${mediaData.url}" download="creative-ai-${Date.now()}.png" class="flex-1 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors">
+                                <i data-lucide="download" class="w-4 h-4"></i> Download
+                            </a>
+                            <button onclick="regenerateImage('${mediaData.originalPrompt}')" class="flex-1 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i> Regenerate
+                            </button>
+                        </div>
+                    `;
+                }
+            }
+            
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message-bubble ${isAgent ? 'mr-auto bg-slate-800 border border-slate-700 rounded-2xl rounded-tl-sm' : 'ml-auto bg-gradient-to-br from-amber-500/20 to-amber-600/20 border border-amber-500/30 rounded-2xl rounded-tr-sm'} p-4 max-w-[90%] md:max-w-[75%]`;
+            msgDiv.innerHTML = `
+                <div class="flex items-start gap-3">
+                    ${isAgent ? '<div class="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0"><i data-lucide="bot" class="w-4 h-4 text-amber-400"></i></div>' : ''}
+                    <div class="flex-1">
+                        <p class="text-sm leading-relaxed ${isAgent ? 'text-slate-300' : 'text-slate-200'}">${escapeHtml(text)}</p>
+                        ${mediaHtml}
+                    </div>
+                </div>
+            `;
+            
+            // Remove typing indicator
+            const typing = document.getElementById('typingIndicator');
+            if (typing) typing.remove();
+            
+            container.appendChild(msgDiv);
+            lucide.createIcons();
+            container.scrollTop = container.scrollHeight;
+            
+            // Save to history
+            chatHistory.push({ sender, text, timestamp: Date.now() });
+            localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+        }
+
+        function showTyping() {
+            const container = document.getElementById('chatContainer');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typingIndicator';
+            typingDiv.className = 'message-bubble mr-auto bg-slate-800 border border-slate-700 rounded-2xl rounded-tl-sm p-4';
+            typingDiv.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+                        <i data-lucide="bot" class="w-4 h-4 text-amber-400"></i>
+                    </div>
+                    <div class="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(typingDiv);
+            container.scrollTop = container.scrollHeight;
+            lucide.createIcons();
+        }
+
+        async function processAgentResponse(userText, file) {
+            const text = userText.toLowerCase();
+            
+            // Help commands
+            if (text.includes('help') || text.includes('how to')) {
+                setTimeout(() => {
+                    addMessage('agent', `Here are some things you can ask me:
+
+🎨 **Create**: "Create a sunset landscape" or "Generate a portrait of a woman"
+✏️ **Edit**: "Make it brighter", "Add more colors", "Change to anime style"
+🎬 **Style**: "Apply cinematic style", "Make it photorealistic"
+📐 **Size**: "Make it 16:9", "Square format"
+♻️ **Regenerate**: "Create another version", "Give me variations"
+
+Just describe what you want naturally!`);
+                }, 800);
+                return;
+            }
+            
+            // Check if it's a modification request
+            if (file || text.includes('modify') || text.includes('change') || text.includes('make it') || text.includes('edit')) {
+                setTimeout(() => {
+                    if (file) {
+                        addMessage('agent', `I'll help you edit this image! Since you uploaded "${file.name}", I can describe modifications, but for actual AI editing, you'd need to integrate an image editing API like:
+
+• **Replicate** (img2img models)
+• **Stability AI** (image editing)
+• **OpenAI DALL-E 2** (inpainting)
+
+For now, let me create a new image based on your request with the uploaded image as inspiration.`);
+                    } else {
+                        addMessage('agent', `I understand you want to modify something. If you're referring to a previous image, please share which one, or describe the new image you'd like me to create with those modifications.`);
+                    }
+                }, 800);
+                return;
+            }
+            
+            // Check if generation request
+            const isGenerationRequest = text.includes('create') || text.includes('generate') || text.includes('make') || 
+                                       text.includes('draw') || text.includes('image') || text.includes('picture') ||
+                                       text.includes('photo') || text.includes('scene') || text.includes('portrait') ||
+                                       text.includes('landscape') || text.length > 10;
+            
+            if (isGenerationRequest) {
+                // Extract the actual prompt
+                let prompt = userText;
+                const removeWords = ['create', 'generate', 'make', 'draw', 'an image of', 'a picture of', 'for me', 'please'];
+                removeWords.forEach(word => {
+                    prompt = prompt.replace(new RegExp(word, 'gi'), '');
+                });
+                prompt = prompt.trim();
+                
+                if (prompt.length < 5) {
+                    setTimeout(() => {
+                        addMessage('agent', 'Could you provide more details about what you\'d like to create? For example: "a sunset over mountains" or "a futuristic city at night"');
+                    }, 800);
+                    return;
+                }
+                
+                // Generate image
+                await generateImage(prompt);
+            } else {
+                setTimeout(() => {
+                    addMessage('agent', `I'm not sure what you'd like me to do. You can ask me to:
+
+• Create an image (e.g., "create a beautiful landscape")
+• Generate a scene (e.g., "generate a cyberpunk city")
+• Use a template from the sidebar
+• Get help by typing "help"
+
+What would you like to create today?`);
+                }, 800);
+            }
+        }
+
+        async function generateImage(prompt) {
+            if (isGenerating) return;
+            isGenerating = true;
+            
+            const style = document.getElementById('styleSelect').value;
+            const aspect = document.getElementById('aspectSelect').value;
+            const quality = document.getElementById('qualitySelect').value;
+            
+            // Build enhanced prompt
+            let enhancedPrompt = prompt;
+            const styleModifiers = {
+                photorealistic: 'photorealistic, highly detailed, professional photography, 8K resolution, sharp focus',
+                artistic: 'artistic interpretation, painterly style, expressive brushstrokes, museum quality, masterpiece',
+                anime: 'anime style, cel shading, vibrant colors, detailed line art, studio quality, Japanese animation style',
+                '3d': '3D render, octane render, unreal engine 5, ray tracing, volumetric lighting, photorealistic textures',
+                cinematic: 'cinematic composition, dramatic lighting, film grain, color graded, movie still, anamorphic',
+                abstract: 'abstract art, bold colors, geometric shapes, contemporary art style, thought-provoking composition'
+            };
+            
+            enhancedPrompt += ', ' + styleModifiers[style];
+            
+            if (quality === 'high') {
+                enhancedPrompt += ', high quality, detailed, 4K';
+            } else if (quality === 'ultra') {
+                enhancedPrompt += ', ultra high quality, extremely detailed, 8K UHD, masterpiece, best quality';
+            }
+            
+            // Determine dimensions
+            let width = 1024, height = 1024;
+            switch(aspect) {
+                case '16:9': width = 1024; height = 576; break;
+                case '9:16': width = 576; height = 1024; break;
+                case '4:3': width = 1024; height = 768; break;
+            }
+            
+            // Generate random seed
+            const seed = Math.floor(Math.random() * 1000000);
+            
+            // Create Pollinations URL
+            const encodedPrompt = encodeURIComponent(enhancedPrompt);
+            const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=true`;
+            
+            addMessage('agent', `Creating your image with ${style} style... This may take 10-20 seconds.`, { type: 'loading' });
+            
+            try {
+                // Wait for image to load
+                await loadImage(imageUrl);
+                
+                // Remove loading message
+                const loadingMsg = document.querySelector('.message-bubble:last-child');
+                if (loadingMsg && loadingMsg.textContent.includes('Creating')) {
+                    loadingMsg.remove();
+                }
+                
+                // Add success message with image
+                addMessage('agent', `✨ Here's your creation! Enhanced with ${style} style. You can download it or ask me to make changes.`, {
+                    type: 'image',
+                    url: imageUrl,
+                    originalPrompt: prompt
+                });
+                
+                // Save to gallery
+                gallery.unshift({
+                    id: Date.now(),
+                    url: imageUrl,
+                    prompt: prompt,
+                    style: style,
+                    timestamp: Date.now()
+                });
+                localStorage.setItem('gallery', JSON.stringify(gallery));
+                updateGalleryCount();
+                renderGallery();
+                
+            } catch (error) {
+                const loadingMsg = document.querySelector('.message-bubble:last-child');
+                if (loadingMsg) loadingMsg.remove();
+                addMessage('agent', 'Sorry, there was an error generating the image. Please try again with a different prompt.');
+            }
+            
+            isGenerating = false;
+        }
+
+        function loadImage(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = url;
+            });
+        }
+
+        async function regenerateImage(originalPrompt) {
+            await generateImage(originalPrompt);
+        }
+
+        function showGallery() {
+            document.getElementById('galleryPanel').classList.remove('translate-x-full');
+        }
+
+        function hideGallery() {
+            document.getElementById('galleryPanel').classList.add('translate-x-full');
+        }
+
+        function renderGallery() {
+            const grid = document.getElementById('galleryGrid');
+            if (gallery.length === 0) {
+                grid.innerHTML = '<p class="col-span-2 text-center text-slate-500 py-8">No images yet. Start creating!</p>';
+                return;
+            }
+            
+            grid.innerHTML = gallery.map(item => `
+                <div class="group relative rounded-xl overflow-hidden bg-slate-800 cursor-pointer" onclick="openImageModal('${item.url}')">
+                    <img src="${item.url}" alt="Gallery item" class="w-full h-32 object-cover group-hover:scale-110 transition-transform duration-300">
+                    <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <button onclick="event.stopPropagation(); downloadImage('${item.url}')" class="p-2 bg-white/20 rounded-full hover:bg-white/40 transition-colors">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="event.stopPropagation(); deleteGalleryItem(${item.id})" class="p-2 bg-red-500/50 rounded-full hover:bg-red-500 transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function updateGalleryCount() {
+            const count = gallery.length;
+            const badge = document.getElementById('galleryCount');
+            if (count > 0) {
+                badge.textContent = count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function openImageModal(url) {
+            document.getElementById('modalImage').src = url;
+            document.getElementById('imageModal').classList.remove('hidden');
+        }
+
+        function closeImageModal() {
+            document.getElementById('imageModal').classList.add('hidden');
+        }
+
+        function downloadImage(url) {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `creative-ai-${Date.now()}.png`;
+            a.click();
+        }
+
+        function deleteGalleryItem(id) {
+            gallery = gallery.filter(item => item.id !== id);
+            localStorage.setItem('gallery', JSON.stringify(gallery));
+            updateGalleryCount();
+            renderGallery();
+        }
+
+        function loadChatHistory() {
+            // Chat is loaded automatically from localStorage on addMessage
+        }
+
+        function showNotification(message) {
+            const div = document.createElement('div');
+            div.className = 'fixed bottom-4 right-4 bg-amber-500 text-slate-950 px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in';
+            div.textContent = message;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 3000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML.replace(/\n/g, '<br>');
+        }
+
+        // Close modals on outside click
+        window.onclick = function(event) {
+            if (event.target.id === 'imageModal') closeImageModal();
+            if (event.target.id === 'settingsModal') closeSettings();
+            if (event.target.id === 'helpModal') closeHelp();
+            if (event.target.id === 'deployModal') closeDeployModal();
+        }
+    </script>
+</body>
+</html>
